@@ -1,0 +1,202 @@
+\documentclass[11pt]{article}
+
+
+% Useful packages
+\usepackage[utf8]{inputenc}  % para acentos y ñ
+\usepackage[english,spanish]{babel}
+
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=2cm,right=2cm,marginparwidth=1.75cm]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\usepackage{listings} % poner codigo
+\lstset{
+	inputencoding=utf8,
+	extendedchars=true,
+	literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1
+	{ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+	{Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1
+	{Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1,
+}
+
+
+\usepackage{float}
+
+\usepackage{graphicx}
+
+%%%%%%%%%%%%% Referencias
+\usepackage[colorlinks=true, allcolors=black]{hyperref}
+\usepackage{cleveref}
+
+\graphicspath{ {images/} }
+
+\usepackage{geometry}
+
+\usepackage{fancyhdr}
+%\setlength{\headheight}{14pt}
+\pagestyle{fancy} 
+
+\usepackage{multicol}
+\setlength{\columnsep}{0,5cm}
+
+\usepackage{lipsum}
+
+\usepackage[usenames]{color}
+
+%tablas
+\usepackage{tabularx} %ancho de tablas
+\usepackage{longtable}
+\usepackage{ltablex}
+\keepXColumns
+
+\usepackage{caption} % títulos de las tablas/figuras
+\captionsetup{font=small} % letra de todos los caption en pequeña
+\captionsetup[table]{name=Tabla}
+\usepackage{subcaption} % este y el anteriori para poner imagenes juntas
+
+%Bibliografia
+\usepackage{hyperref}
+\usepackage{cite}
+%\usepackage{balance}%evita que se partan cosas
+
+%%%%%%%%%%%%%%% NUEVOS COMANDOS
+\newcommand{\comillas}[1]{"#1"} %comillas dobles
+\newcommand{\mult}[0]{\!\cdot\!} %comillas dobles
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+	
+	\begin{center}
+		\vspace*{3,5cm}
+		\textbf{\Huge Estudio del movimiento browniano mediante el uso de métodos de Monte Carlo}
+		
+		\bigskip\bigskip\bigskip
+		\LARGE{Mario Carracedo Andrés}
+		
+		\bigskip\bigskip\bigskip\bigskip
+		\includegraphics[height=8cm]{imagenes/movimiento_browniano} % Asegúrate de tener esta imagen
+	\end{center}
+	
+	\newpage
+	\pagestyle{fancy}
+	\fancyhead[l]{Mario Carracedo Andrés}
+	\fancyfoot[c]{\thepage}
+	
+	\section{Qué es el movimiento browniano}
+		El movimiento browniano es un proceso estocástico de tiempo continuo que describe el movimiento aleatorio de partículas suspendidas en un fluido. Matemáticamente, se define como un proceso de Wiener $W_t$ que cumple tres propiedades fundamentales:
+		\begin{itemize}
+			\item $W_0 = 0$ (comienza en el origen).
+			\item Trayectorias continuas en casi todo punto.
+			\item \textbf{Incrementos independientes y estacionarios:} Para cualquier intervalo de tiempo $\Delta t > 0$, el cambio en la posición sigue una distribución normal: 
+			\begin{equation}
+				W_{t+\Delta t} - W_t \sim \mathcal{N}(0, \Delta t)
+			\end{equation}
+			Esto implica que la distancia recorrida es un número aleatorio con valor esperado nulo y varianza igual al tiempo transcurrido. Físicamente, esto refleja que en intervalos de tiempo menores, la partícula tiene menos capacidad de alejarse de su posición actual.
+		\end{itemize}
+		
+		De esta manera se puede decir que $W_t$ representa el movimiento browniano estándar:
+		\begin{equation*}
+			dW_t = Z_t \sqrt{dt}
+		\end{equation*}
+		
+		Donde $Z \sim \mathcal{N}(0,1)$
+		
+	\section{Notación y Operadores Estocásticos}
+		Para el desarrollo del análisis matemático de la simulación, utilizaremos la siguiente notación estándar para describir las propiedades estadísticas del proceso:
+		
+		\begin{itemize}
+			\item \textbf{Esperanza Matemática o Valor Esperado ($E[X]$):} Representa el promedio ponderado de todos los resultados posibles. En nuestro modelo, define la trayectoria media o \textit{drift}:
+			\begin{equation}
+				E[X_t] = \mu \mult t
+			\end{equation}
+			
+			\item \textbf{Varianza ($Var(X)$):} Mide la dispersión de los resultados respecto a la esperanza. En el movimiento browniano, la varianza es lineal respecto al tiempo \hyperref[oksendal2003stochastic]{\cite{oksendal2003stochastic}}:
+			
+			\begin{equation}
+				Var(X_t) = \sigma^2 \mult t
+			\end{equation}
+			
+			\item \textbf{Desviación Típica/Estandar ($\sigma_x$):} Es la raíz cuadrada de la varianza. Determina el ancho de la campana de Gauss en cada instante $t$:
+			\begin{equation}
+				\sigma_x = \sqrt{Var(X_t)} = \sigma \mult \sqrt{t}
+			\end{equation}
+			
+			\item \textbf{Distribución Normal ($\mathcal{N}(\mu, \sigma^2)$):} Denotamos que una variable sigue una distribución gaussiana (campana de Gauss) con una media y una varianza específicas.
+			
+			\item \textbf{Distribución del Proceso ($X_t \sim \mathcal{N}(\mu t, \sigma^2 t)$):} Denotamos que la posición de la partícula en un instante $t$ sigue una distribución gaussiana. A diferencia de una variable aleatoria estática, los parámetros de esta distribución evolucionan con el tiempo: la media se desplaza según $\mu t$ y la varianza se expande según $\sigma^2 t$ \cite{oksendal2003stochastic}.
+		\end{itemize}
+		
+		Esta distinción es crucial para la simulación numérica, ya que mientras la tendencia del sistema crece de forma lineal con $t$, la incertidumbre o \comillas{ruido} crece de forma sublineal con $\sqrt{t}$.
+		
+	\section{Random Walk (Caminata aleatoria)}	
+		La aproximación discreta del movimiento browniano es el \textit{random walk}\cite{shreve2005stochastic}. En este modelo, una partícula realiza saltos aleatorios en intervalos de tiempo discretos $\Delta t$. Si definimos el salto como $\Delta X = \mu\Delta t + \sigma \sqrt{\Delta t} \mult Z$, donde $Z $ es una variable aleatoria de una distribución normal estándar, el límite cuando $\Delta t \to 0$ converge al movimiento browniano continuo. Este es el principio que utilizamos en nuestra simulación numérica mediante el esquema de Euler-Maruyama.
+		
+	\section{Conexión con la difusión}
+		Existe una equivalencia profunda entre el comportamiento microscópico aleatorio y la ley macroscópica de la difusión. Si consideramos una densidad de partículas $\phi(x,t)$, su evolución sigue la ecuación de calor:
+		\begin{equation}
+			\frac{\partial \phi}{\partial t} = D \frac{\partial^2 \phi}{\partial x^2}
+		\end{equation}
+		Donde el coeficiente de difusión $D$ está relacionado con la varianza de la siguiente manera $Var(X_t) = 2D*t$ \hyperref[einstein1906theory]{\cite{einstein1906theory}}, que si lo conectamos con la volatilidad de nuestra simulación,$D = \frac{\sigma^2}{2}$. Esto implica que, aunque una partícula individual es impredecible, el promedio de una población sigue un patrón determinista.
+		
+	\section{Ecuación diferencial estocástica}
+		Para modelar el movimiento con una tendencia (drift), utilizamos la ecuación de Langevin:
+		\begin{equation}
+			dX_t = \mu dt + \sigma dW_t
+		\end{equation}
+		Donde:
+		\begin{itemize}
+			\item $\mu dt$: Representa la componente determinista o \textit{drift}. Es el valor esperado del movimiento por unidad de tiempo.
+			\item $\sigma dW_t$: Representa la componente estocástica o difusión.
+		\end{itemize}
+		
+		Integrando esta ecuación, obtenemos que la posición en un tiempo $t$ sigue una distribución normal:
+		
+		\begin{equation}
+			X_t \sim \mathcal{N}(\mu t, \sigma^2 t)
+		\end{equation}
+		
+		Esto justifica que en nuestra simulación hayamos representado el valor esperado como una recta $\mu t$ y la incertidumbre (desviación típica) como una curva proporcional a $\sqrt{t}$.
+		
+	\section{Implementación Numérica: El Esquema de Euler-Maruyama}
+	Para resolver las ecuaciones diferenciales estocásticas en un ordenador, utilizamos el método de Euler-Maruyama. Este discretiza el tiempo en pasos $\Delta t$ y aproxima el incremento del proceso mediante:
+	\begin{equation}
+		\Delta X = \text{Tendencia}(\Delta t) + \text{Difusión}(\sqrt{\Delta t}, Z)
+	\end{equation}
+	Donde recordemos que $Z \sim \mathcal{N}(0,1)$. A continuación, se presentan los tres modelos implementados en este proyecto, cada uno con su script de Python independiente.
+	
+	\section{Casos de Estudio y Scripts}
+	
+	\subsection{Caso 1: Movimiento Browniano Estándar (\texttt{movimiento\_browniano.py})}
+	Es el bloque constructivo básico (Proceso de Wiener) donde no existe tendencia ($\mu=0$) y la volatilidad es unitaria ($\sigma=1$). Describe un ruido puramente aleatorio e isotrópico.
+	\begin{equation}
+		dX_t = dW_t \implies X_t \sim \mathcal{N}(0, t)
+	\end{equation}
+	En este modelo, la varianza crece exactamente igual al tiempo transcurrido ($Var = t$), y la posición más probable es siempre el origen, aunque la dispersión aumenta con $\sqrt{t}$.
+	
+	\subsection{Caso 2: Movimiento Browniano Aritmético (\texttt{movimiento\_browniano.py})}
+	Este script implementa la ecuación de Langevin, añadiendo una componente determinista (\textit{drift}) que empuja la partícula en una dirección preferente.
+	\begin{equation}
+		dX_t = \mu dt + \sigma dW_t \implies X_t \sim \mathcal{N}(\mu t, \sigma^2 t)
+	\end{equation}
+	Aquí, el valor esperado evoluciona como una recta $E[X_t] = \mu t$, mientras que la incertidumbre se expande según las bandas de confianza $\pm \sigma \sqrt{t}$. Es el modelo físico por excelencia para la difusión con corriente o transporte.
+	
+	\subsection{Caso 3: Movimiento Browniano Geométrico (\texttt{movimiento\_browniano\_geometrico.py})}
+	Para modelar activos financieros, utilizamos el Movimiento Browniano Geométrico (GBM). A diferencia de los anteriores, el cambio en el precio es proporcional al valor actual del activo ($S_t$), lo que garantiza que los precios sean siempre positivos ($S_t > 0$).
+	\begin{equation}
+		dS_t = \mu S_t dt + \sigma S_t dW_t
+	\end{equation}
+	Usando el Lema de Itô, la solución exacta para el Movimiento Browniano es:
+	\begin{equation}
+		S_t = S_0 \exp\left( \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t \right)
+	\end{equation}
+	Este script simula el comportamiento de acciones en el mercado, donde la variable sigue una distribución \textbf{log-normal}; es decir, si en el caso aritmético era $X_t \sim \mathcal{N}(\mu t,\sigma^2t)$, ahora es $\ln(X_t) \sim \mathcal{N}\left( \ln(X_0) + \left( \mu - \dfrac{\sigma^2}{2} \right)t  , \sigma^2 t \right)$. Es la base matemática del modelo de Black-Scholes.
+	
+	\renewcommand{\refname}{Bibliografía}
+	\bibliographystyle{plain}  % O puedes usar otro estilo: ieeetr, apa, etc.
+	\bibliography{Bibliografia}
+\end{document}
