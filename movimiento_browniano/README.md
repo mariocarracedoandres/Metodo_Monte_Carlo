@@ -17,13 +17,13 @@
 - **Estudiar el comportamiento estocastico para 1 y varias treayectorias:** ver como la variacion de la tendencia y volatilidad afecta al comportamiento estocastico.
 - **Guardado de los datos para reproducibilidad:** Exportacion de los datos en formato Excel (csv) así como la semilla utlizidada.
 
-### movimieto_browniano.py
-#### Requisitos
+## movimieto_browniano.py
+### Requisitos
 - `numpy`
 - `matplotlib`
 - `pandas`
 
-#### Parámetros
+### Parámetros
 - `tiempo_maximo`: indicar el tiempo maximo de simulación
 - `entrada`: indicar el número de trayectorias a simular
 - `mu`: indicar la tendencia
@@ -39,7 +39,7 @@ Observar **plots\movimiento_browniano_estandar(png).png** y **plots\datos_movimi
 - `sigma`: 3
 Observar **plots\movimiento_browniano_aritmetico(png).png** y **plots\datos_movimiento_browniano_aritmetico(csv).csv**
 
-#### Consideraciones
+### Consideraciones
 -El programa preguntará si se desea **visualziar** los resurados en consola: si (y) o no (n). Además, si se desea **guardar los datos en formato Excel (csv)**: si (y) o no (n).
 -Se han tomado en cuenta que la **separacion decimal es ","**
 
