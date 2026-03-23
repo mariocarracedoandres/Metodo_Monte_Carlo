@@ -2,11 +2,14 @@
 - README.md
 - simulaciones
     - movimiento_browniano.py
-    - plots
-        -datos_movimiento_browniano_estandar(csv).csv
-        -datos_movimiento_browniano_aritmetico(csv).csv
-        -movimiento_browniano_estandar(png).png
-        -movimiento_browniano_aritmetico(png).png
+    - movimiento_browniano_geometrico.py
+- plots
+    -datos_movimiento_browniano_estandar(csv).csv
+    -datos_movimiento_browniano_aritmetico(csv).csv
+    -datos_movimiento_browniano_geometrico(csv).csv
+    -movimiento_browniano_estandar(png).png
+    -movimiento_browniano_aritmetico(png).png
+    -movimiento_browniano_geometrico(png).png
 - teoría
     - movimiento_browniano.pdf
     - movimiento_browniano.tex
@@ -23,7 +26,7 @@
 - `matplotlib`
 - `pandas`
 
-### Parámetros
+### Parámetros (se piden al  ejecutar el programa)
 - `tiempo_maximo`: indicar el tiempo maximo de simulación
 - `entrada`: indicar el número de trayectorias a simular
 - `mu`: indicar la tendencia
@@ -44,4 +47,17 @@ Observar **plots\movimiento_browniano_aritmetico(png).png** y **plots\datos_movi
 -Se han tomado en cuenta que la **separacion decimal es ","**
 
 ## movimiento_browniano_geometrico.py
-Aún en desarrollo.
+### Parámetros (se piden al  ejecutar el programa)
+- `tiempo_maximo`: indicar el tiempo maximo de simulación
+- `entrada`: indicar el número de trayectorias a simular 
+- `mu`: indicar la tendencia
+- `sigma`: indicar la volatilidad
+
+##### Ejemplo: movimeinto browniano geometrico.
+- `mu`: 0.05
+- `sigma`: 0.2
+Observar **plots\movimiento_browniano_geometrico(png).png** y **plots\datos_movimiento_browniano_geometrico(csv).csv**
+
+### Consideraciones
+-El programa preguntará si se desea **visualziar** los resurados en consola: si (y) o no (n). Además, si se desea **guardar los datos en formato Excel (csv)**: si (y) o no (n).
+-Se han tomado en cuenta que la **separacion decimal es ","**

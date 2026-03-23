@@ -1,9 +1,9 @@
 ####################################################
-# movimiento_browniano_geometrico.py
+# movimiento_browniano_geométrico.py
 # Author: Mario Carracedo Andres
 # Year: 2026
 # License: MIT
-# Description: Muestra el comportamiento aleatorio del movimiento browniano geometrico
+# Description: Muestra el comportamiento aleatorio del movimiento browniano geometrico para varias trayectorias
 ####################################################
 
 import numpy as np # para cálculos numéricos
