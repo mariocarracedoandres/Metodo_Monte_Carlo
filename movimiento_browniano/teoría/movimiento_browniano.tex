@@ -167,7 +167,7 @@
 	\begin{equation}
 		\Delta X = \text{Tendencia}(\Delta t) + \text{Difusión}(\sqrt{\Delta t}, Z)
 	\end{equation}
-	Donde recordemos que $Z \sim \mathcal{N}(0,1)$. A continuación, se presentan los tres modelos implementados en este proyecto, cada uno con su script de Python independiente.
+	Donde recordemos que $Z \sim \mathcal{N}(0,1)$. A continuación, se presentan los tres modelos implementados en este proyecto, cada uno con su script de Python independiente. Se hablará algo mas detalladamente sobre el movimiento btowniano geométrico en la subsección \ref{MB geom}
 	
 	\section{Casos de Estudio y Scripts}
 	
@@ -186,15 +186,47 @@
 	Aquí, el valor esperado evoluciona como una recta $E[X_t] = \mu t$, mientras que la incertidumbre se expande según las bandas de confianza $\pm \sigma \sqrt{t}$. Es el modelo físico por excelencia para la difusión con corriente o transporte.
 	
 	\subsection{Caso 3: Movimiento Browniano Geométrico (\texttt{movimiento\_browniano\_geometrico.py})}
+	\label{MB geom}
+	
 	Para modelar activos financieros, utilizamos el Movimiento Browniano Geométrico (GBM). A diferencia de los anteriores, el cambio en el precio es proporcional al valor actual del activo ($S_t$), lo que garantiza que los precios sean siempre positivos ($S_t > 0$).
 	\begin{equation}
 		dS_t = \mu S_t dt + \sigma S_t dW_t
 	\end{equation}
 	Usando el Lema de Itô, la solución exacta para el Movimiento Browniano es:
 	\begin{equation}
-		S_t = S_0 \exp\left( \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t \right)
+		\boxed{S_t = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t}}
 	\end{equation}
-	Este script simula el comportamiento de acciones en el mercado, donde la variable sigue una distribución \textbf{log-normal}; es decir, si en el caso aritmético era $X_t \sim \mathcal{N}(\mu t,\sigma^2t)$, ahora es $\ln(X_t) \sim \mathcal{N}\left( \ln(X_0) + \left( \mu - \dfrac{\sigma^2}{2} \right)t  , \sigma^2 t \right)$. Es la base matemática del modelo de Black-Scholes.
+	Este script simula el comportamiento de acciones en el mercado, donde la variable sigue una distribución \textbf{log-normal}; es decir, si en el caso aritmético era $X_t \sim \mathcal{N}(\mu t,\sigma^2t)$, ahora es $\ln(S_t) \sim \mathcal{N}\left( \ln(S_0) + \left( \mu - \dfrac{\sigma^2}{2} \right)t  , \sigma^2 t \right)$. Es la base matemática del modelo de Black-Scholes.
+	
+	De esta manera, ahora $Var(S_t) \neq \sigma^2 \mult t$ y $E[S_t] \neq \mu \mult t$, pues ahora hay que tener en cuenta que la distribución es normal en el logaritmo, de esta manera 
+	\begin{equation*}
+		\boxed{E[S_t] = S_0e^{ \mu t}}
+	\end{equation*}
+	\begin{gather*}
+		\boxed{Var(S_t) = S_0^2 e^{2\mu t}(e^{\sigma^2t} - 1) \implies  \sigma_{S_t} = \sqrt{Var(S_t)} = S_0 e^{\mu t}\sqrt{e^{\sigma^2t} - 1)}
+		}
+	\end{gather*}
+	
+	Si representamos la dispersión absoluta
+	
+	\begin{gather}
+		\boxed{S_{t,up/down} = E[S_t] \pm 1.96 S_0 e^{\mu t}\sqrt{e^{\sigma^2t} - 1)}}
+	\end{gather}
+	
+	A mayores, ese representará también la mediana \comillas{Md} y el intervalo de confianza Log-Nromal (zona en la que el 95\% de caerán ). Esto es debido a que por el comportamiento exponencial, valores que exploten aportarán mucho mas que muchos valores que no lo hagan en, afectando al valor esperado. Si tenemos en cuenta que $Md(W_t) = 0$ (pues la mediana de una distribución normal es el propio valor esperado, y en la distribución normal, este es 0)
+	
+	\begin{gather*}
+		Md(S_t) = Md\left( S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t}\right)  = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t}Md(e^{\sigma W_t}) = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t}e^{Md(\sigma W_t)} = 
+	\end{gather*}
+	\begin{equation}
+		\boxed{Md(S_t) = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t}}
+	\end{equation}
+	
+	Veamos la zona de confianza \textbf{Log-Normal}. Como es en el mundo de los logaritmos donde existe la aditividad y se cumple lo que vimos para el caso del browniano aritmetico, $\sigma_{\ln(s_t)} = \sigma\sqrt{t}$, entonces para una banda del 95\% de confianza, se toma margenes $\pm 1.96\sigma_{\ln(s_t)}$
+	
+	\begin{gather}
+		\boxed{S_{t,up/down} = Md(S_t)e^{\pm \sigma_{\ln(s_t)}} = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t \pm 1.96\sigma \sqrt{t}}}
+	\end{gather}
 	
 	\renewcommand{\refname}{Bibliografía}
 	\bibliographystyle{plain}  % O puedes usar otro estilo: ieeetr, apa, etc.
