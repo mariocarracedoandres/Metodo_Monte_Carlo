@@ -73,7 +73,7 @@
 	
 	\begin{center}
 		\vspace*{3,5cm}
-		\textbf{\Huge Estudio del movimiento browniano mediante el uso de métodos de Monte Carlo}
+		\textbf{\Huge Estudio del movimiento browniano estandar, aritmético y geométrico mediante el uso de métodos de Monte Carlo}
 		
 		\bigskip\bigskip\bigskip
 		\LARGE{Mario Carracedo Andrés}
@@ -138,17 +138,22 @@
 		
 	\section{Conexión con la difusión}
 		Existe una equivalencia profunda entre el comportamiento microscópico aleatorio y la ley macroscópica de la difusión. Si consideramos una densidad de partículas $\phi(x,t)$, su evolución sigue la ecuación de calor:
+		
 		\begin{equation}
 			\frac{\partial \phi}{\partial t} = D \frac{\partial^2 \phi}{\partial x^2}
 		\end{equation}
+		
 		Donde el coeficiente de difusión $D$ está relacionado con la varianza de la siguiente manera $Var(X_t) = 2D*t$ \hyperref[einstein1906theory]{\cite{einstein1906theory}}, que si lo conectamos con la volatilidad de nuestra simulación,$D = \frac{\sigma^2}{2}$. Esto implica que, aunque una partícula individual es impredecible, el promedio de una población sigue un patrón determinista.
 		
 	\section{Ecuación diferencial estocástica}
 		Para modelar el movimiento con una tendencia (drift), utilizamos la ecuación de Langevin:
+		
 		\begin{equation}
 			dX_t = \mu dt + \sigma dW_t
 		\end{equation}
+		
 		Donde:
+		
 		\begin{itemize}
 			\item $\mu dt$: Representa la componente determinista o \textit{drift}. Es el valor esperado del movimiento por unidad de tiempo.
 			\item $\sigma dW_t$: Representa la componente estocástica o difusión.
@@ -163,49 +168,61 @@
 		Esto justifica que en nuestra simulación hayamos representado el valor esperado como una recta $\mu t$ y la incertidumbre (desviación típica) como una curva proporcional a $\sqrt{t}$.
 		
 	\section{Implementación Numérica: El Esquema de Euler-Maruyama}
-	Para resolver las ecuaciones diferenciales estocásticas en un ordenador, utilizamos el método de Euler-Maruyama. Este discretiza el tiempo en pasos $\Delta t$ y aproxima el incremento del proceso mediante:
+		Para resolver las ecuaciones diferenciales estocásticas en un ordenador, utilizamos el método de Euler-Maruyama. Este discretiza el tiempo en pasos $\Delta t$ y aproxima el incremento del proceso mediante:
+		
 	\begin{equation}
 		\Delta X = \text{Tendencia}(\Delta t) + \text{Difusión}(\sqrt{\Delta t}, Z)
 	\end{equation}
-	Donde recordemos que $Z \sim \mathcal{N}(0,1)$. A continuación, se presentan los tres modelos implementados en este proyecto, cada uno con su script de Python independiente. Se hablará algo mas detalladamente sobre el movimiento btowniano geométrico en la subsección \ref{MB geom}
+	
+		Donde recordemos que $Z \sim \mathcal{N}(0,1)$. Tras ello se palicará el método de Monte Carlo mediante la simulación de una cantidad de trayectorias que se pedirá pal ejecutar el programa. A continuación, se presentan los tres modelos implementados en este proyecto, cada uno con su script de Python independiente. Se hablará algo mas detalladamente sobre el movimiento btowniano aritmético y geométrico en la subsección \ref{MB arit} y \ref{MB geom} respectivamente.
 	
 	\section{Casos de Estudio y Scripts}
 	
-	\subsection{Caso 1: Movimiento Browniano Estándar (\texttt{movimiento\_browniano.py})}
-	Es el bloque constructivo básico (Proceso de Wiener) donde no existe tendencia ($\mu=0$) y la volatilidad es unitaria ($\sigma=1$). Describe un ruido puramente aleatorio e isotrópico.
-	\begin{equation}
-		dX_t = dW_t \implies X_t \sim \mathcal{N}(0, t)
-	\end{equation}
-	En este modelo, la varianza crece exactamente igual al tiempo transcurrido ($Var = t$), y la posición más probable es siempre el origen, aunque la dispersión aumenta con $\sqrt{t}$.
-	
-	\subsection{Caso 2: Movimiento Browniano Aritmético (\texttt{movimiento\_browniano.py})}
-	Este script implementa la ecuación de Langevin, añadiendo una componente determinista (\textit{drift}) que empuja la partícula en una dirección preferente.
-	\begin{equation}
-		dX_t = \mu dt + \sigma dW_t \implies X_t \sim \mathcal{N}(\mu t, \sigma^2 t)
-	\end{equation}
-	Aquí, el valor esperado evoluciona como una recta $E[X_t] = \mu t$, mientras que la incertidumbre se expande según las bandas de confianza $\pm \sigma \sqrt{t}$. Es el modelo físico por excelencia para la difusión con corriente o transporte.
-	
-	\subsection{Caso 3: Movimiento Browniano Geométrico (\texttt{movimiento\_browniano\_geometrico.py})}
-	\label{MB geom}
-	
-	Para modelar activos financieros, utilizamos el Movimiento Browniano Geométrico (GBM). A diferencia de los anteriores, el cambio en el precio es proporcional al valor actual del activo ($S_t$), lo que garantiza que los precios sean siempre positivos ($S_t > 0$).
-	\begin{equation}
-		dS_t = \mu S_t dt + \sigma S_t dW_t
-	\end{equation}
-	Usando el Lema de Itô, la solución exacta para el Movimiento Browniano es:
-	\begin{equation}
-		\boxed{S_t = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t}}
-	\end{equation}
-	Este script simula el comportamiento de acciones en el mercado, donde la variable sigue una distribución \textbf{log-normal}; es decir, si en el caso aritmético era $X_t \sim \mathcal{N}(\mu t,\sigma^2t)$, ahora es $\ln(S_t) \sim \mathcal{N}\left( \ln(S_0) + \left( \mu - \dfrac{\sigma^2}{2} \right)t  , \sigma^2 t \right)$. Es la base matemática del modelo de Black-Scholes.
-	
-	De esta manera, ahora $Var(S_t) \neq \sigma^2 \mult t$ y $E[S_t] \neq \mu \mult t$, pues ahora hay que tener en cuenta que la distribución es normal en el logaritmo, de esta manera 
-	\begin{equation*}
-		\boxed{E[S_t] = S_0e^{ \mu t}}
-	\end{equation*}
-	\begin{gather*}
-		\boxed{Var(S_t) = S_0^2 e^{2\mu t}(e^{\sigma^2t} - 1) \implies  \sigma_{S_t} = \sqrt{Var(S_t)} = S_0 e^{\mu t}\sqrt{e^{\sigma^2t} - 1)}
-		}
-	\end{gather*}
+		\subsection{Caso 1: Movimiento Browniano Estándar (\texttt{movimiento\_browniano.py})}
+			Es el bloque constructivo básico (Proceso de Wiener) donde no existe tendencia ($\mu=0$) y la volatilidad es unitaria ($\sigma=1$). Describe un ruido puramente aleatorio e isotrópico.
+			
+			\begin{equation}
+				dX_t = dW_t \implies X_t \sim \mathcal{N}(0, t)
+			\end{equation}
+			
+			En este modelo, la varianza crece exactamente igual al tiempo transcurrido ($Var = t$), y la posición más probable es siempre el origen, aunque la dispersión aumenta con $\sqrt{t}$.
+			
+		\subsection{Caso 2: Movimiento Browniano Aritmético (\texttt{movimiento\_browniano.py})}
+			\label{MB arit}
+			
+			Este script implementa la ecuación de Langevin, añadiendo una componente determinista (\textit{drift}) que empuja la partícula en una dirección preferente.
+			
+			\begin{equation}
+				dX_t = \mu dt + \sigma dW_t \implies X_t \sim \mathcal{N}(\mu t, \sigma^2 t)
+			\end{equation}
+			
+			Aquí, el valor esperado evoluciona como una recta $E[X_t] = \mu t$, mientras que la incertidumbre se expande según las bandas de confianza $\pm \sigma \sqrt{t}$. Es el modelo físico por excelencia para la difusión con corriente o transporte.
+			
+		\subsection{Caso 3: Movimiento Browniano Geométrico, GBM (\texttt{movimiento\_browniano\_geometrico.py})}
+			\label{MB geom}
+				
+			Para modelar activos financieros, utilizamos el Movimiento Browniano Geométrico (GBM). A diferencia de los anteriores, el cambio en el precio es proporcional al valor actual del activo ($S_t$), lo que garantiza que los precios sean siempre positivos ($S_t > 0$).
+			
+			\begin{equation}
+				dS_t = \mu S_t dt + \sigma S_t dW_t
+			\end{equation}
+			
+			Usando el Lema de Itô, la solución exacta para el Movimiento Browniano es:
+			\begin{equation}
+				\boxed{S_t = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t}}
+			\end{equation}
+			
+			Este script simula el comportamiento de acciones en el mercado, donde la variable sigue una distribución \textbf{log-normal}; es decir, si en el caso aritmético era $X_t \sim \mathcal{N}(\mu t,\sigma^2t)$, ahora es \\
+			$\ln(S_t) \sim \mathcal{N}\left( \ln(S_0) + \left( \mu - \dfrac{\sigma^2}{2} \right)t  , \sigma^2 t \right)$. Es la base matemática del modelo de Black-Scholes.
+				
+			De esta manera, ahora $Var(S_t) \neq \sigma^2 \mult t$ y $E[S_t] \neq \mu \mult t$, pues ahora hay que tener en cuenta que la distribución es normal en el logaritmo, de esta manera 
+			\begin{equation*}
+				\boxed{E[S_t] = S_0e^{ \mu t}}
+			\end{equation*}
+			\begin{gather*}
+				\boxed{Var(S_t) = S_0^2 e^{2\mu t}(e^{\sigma^2t} - 1) \implies  \sigma_{S_t} = \sqrt{Var(S_t)} = S_0 e^{\mu t}\sqrt{e^{\sigma^2t} - 1)}
+				}
+			\end{gather*}
 	
 	Si representamos la dispersión absoluta
 	
@@ -213,7 +230,7 @@
 		\boxed{S_{t,up/down} = E[S_t] \pm 1.96 S_0 e^{\mu t}\sqrt{e^{\sigma^2t} - 1)}}
 	\end{gather}
 	
-	A mayores, ese representará también la mediana \comillas{Md} y el intervalo de confianza Log-Nromal (zona en la que el 95\% de caerán ). Esto es debido a que por el comportamiento exponencial, valores que exploten aportarán mucho mas que muchos valores que no lo hagan en, afectando al valor esperado. Si tenemos en cuenta que $Md(W_t) = 0$ (pues la mediana de una distribución normal es el propio valor esperado, y en la distribución normal, este es 0)
+	A mayores, se representará también la mediana \comillas{Md} y el intervalo de confianza Log-Nromal (zona en la que el 95\% de caerán ). Esto es debido a que por el comportamiento exponencial, valores que exploten aportarán mucho mas que muchos valores que no lo hagan en, afectando al valor esperado. Si tenemos en cuenta que $Md(W_t) = 0$ (pues la mediana de una distribución normal es el propio valor esperado, y en la distribución normal, este es 0)
 	
 	\begin{gather*}
 		Md(S_t) = Md\left( S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t + \sigma W_t}\right)  = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t}Md(e^{\sigma W_t}) = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t}e^{Md(\sigma W_t)} = 
@@ -227,6 +244,9 @@
 	\begin{gather}
 		\boxed{S_{t,up/down} = Md(S_t)e^{\pm \sigma_{\ln(s_t)}} = S_0 e^{ \left(\mu - \frac{\sigma^2}{2}\right)t \pm 1.96\sigma \sqrt{t}}}
 	\end{gather}
+	
+	\textbf{Aclaración:} Aunque ya hablemos de precios, el modelo GBM, es un proceso estadístico que representa el caos, pero teniendo e cuenta que no puede bajar de 0 y que ahora se realizan saltos porcentuales. De esta manera aún no refleja la realidad total del mercado.
+	
 	
 	\renewcommand{\refname}{Bibliografía}
 	\bibliographystyle{plain}  % O puedes usar otro estilo: ieeetr, apa, etc.
