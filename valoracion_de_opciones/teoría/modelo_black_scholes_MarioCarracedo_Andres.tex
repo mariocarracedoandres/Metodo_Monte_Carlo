@@ -1,0 +1,438 @@
+\documentclass[11pt]{article}
+
+
+% Useful packages
+\usepackage[utf8]{inputenc}  % para acentos y ñ
+\usepackage[english,spanish]{babel}
+
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=2cm,right=2cm,marginparwidth=1.75cm]{geometry}
+
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+\usepackage{listings} % poner codigo
+\lstset{
+	inputencoding=utf8,
+	extendedchars=true,
+	literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1
+	{ó}{{\'o}}1 {ú}{{\'u}}1 {ñ}{{\~n}}1
+	{Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1
+	{Ó}{{\'O}}1 {Ú}{{\'U}}1 {Ñ}{{\~N}}1,
+}
+
+
+\usepackage{float}
+
+\usepackage{graphicx}
+
+%%%%%%%%%%%%% Referencias
+\usepackage[colorlinks=true, allcolors=black]{hyperref}
+\usepackage{cleveref}
+
+\graphicspath{ {images/} }
+
+\usepackage{geometry}
+
+\usepackage{fancyhdr}
+%\setlength{\headheight}{14pt}
+\pagestyle{fancy} 
+
+\usepackage{multicol}
+\setlength{\columnsep}{0,5cm}
+
+\usepackage{lipsum}
+
+\usepackage[usenames]{color}
+
+%tablas
+\usepackage{tabularx} %ancho de tablas
+\usepackage{longtable}
+\usepackage{ltablex}
+\keepXColumns
+
+\usepackage{caption} % títulos de las tablas/figuras
+\captionsetup{font=small} % letra de todos los caption en pequeña
+\captionsetup[table]{name=Tabla}
+\usepackage{subcaption} % este y el anteriori para poner imagenes juntas
+
+%Bibliografia
+\usepackage{hyperref}
+\usepackage{cite}
+%\usepackage{balance}%evita que se partan cosas
+
+%%%%%%%%%%%%%%% NUEVOS COMANDOS
+\newcommand{\comillas}[1]{"#1"} %comillas dobles
+\newcommand{\mult}[0]{\!\cdot\!} %comillas dobles
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+	
+	\begin{center}
+		\vspace*{3,5cm}
+		\textbf{\Huge Modelo de Black-Scholes con cobertura dinámica}
+		
+		\bigskip\bigskip\bigskip
+		\LARGE{Mario Carracedo Andrés}
+		
+		\bigskip\bigskip\bigskip\bigskip
+		\begin{figure}[h]
+			\centering
+			\includegraphics[height=8cm]{imagenes/black} % Asegúrate de tener esta imagen
+			\label{VSium}
+			\caption{Opción ATM \cite{veritasium2024}.}
+		\end{figure}
+	\end{center}
+	
+	\newpage
+	\pagestyle{fancy}
+	\fancyhead[l]{Mario Carracedo Andrés}
+	\fancyhead[r]{}
+	\fancyfoot[c]{\thepage}
+	
+	
+	
+	
+	
+	
+	% ÍNDICE
+	\tableofcontents 
+	\newpage
+	
+	\section{Terminología}
+	Antes de comenzar, se presentará a continuación terminología nueva, la cual se usará para implementar el modelo correctamente:
+	
+	\begin{itemize}
+		\item \textbf{Derivado:} Producto financiero, cuyo precio \comillas{deriva}/depende de un activo, llamado también \comillas{activo subyacente}
+		
+		\item \textbf{Activo Subyacente ($S$):} El activo financiero del que dependen los derivados cuyo precio simulamos mediante el Movimiento Browniano Geométrico
+		
+		\item \textbf{Lanzador:} quien vende la opción
+		
+		\item \textbf{Cliente:} quien compra la opción.
+		
+		\item \textbf{Precio de Ejercicio/Strike ($K$):} Precio fijo acordado al que el cliente tiene el derecho de adquirir/vender, sin importar el precio al que esta \comillas{$S$} en el mercado.
+		
+		\item \textbf{Opción:} Derivado, en el que el lanzador le vende la opcion a un cliente, de comprar un activo en el futuro, al precio de ejercicio, la cual es fijo.
+		
+		\item \textbf{Tipo libre de riesgo ($r$):} Es el interés que el lanzador deja de recibir al retirar dinero de una inversión segura (como retirar fondos de un fondo monetario o bonos del gobierno) para comprar las acciones de la \textbf{cartera de cobertura}.
+		
+		\item \textbf{Volatilidad/Volatility ($\sigma$):} Parámetro que define la dispersión de la campana de probabilidad; a mayor $\sigma$, mayor es el valor de la prima (pues la probabilidad de que el cliente gane es más alta), a menor $\sigma$, menor es el valor de la prima (pues la campana es tan estrecha que al esperar casi un único valor, no tiene sentido comprar una opción por si sube o baja el precio)
+		
+		\item \textbf{Tendencia/Drift ($\mu$):} Tendencia de subida o bajada del mercado
+		
+		\item \textbf{Prima ($V$):} Es el coste del derecho de la opción. Este valor debe compensar al lanzador por dos factores críticos: 1) El coste de montar la \textbf{cartera de cobertura} (comprar las acciones necesarias para anular el riesgo) y 2) El \textbf{coste de oportunidad} de haber retirado ese capital de una cuenta segura que generaba intereses ($r$). Por tanto, la prima no es una apuesta, sino el capital necesario para que el lanzador mantenga una posición neutral y protegida durante toda la vida del contrato.
+		
+		\item \textbf{Neutralidad al Riesgo:} Supuesto donde se utiliza $r$ (objetivo) en lugar de $\mu$ (subjetivo) para garantizar que el modelo esté libre de arbitraje.
+		
+		\item \textbf{Cartera de Cobertura ($\Pi$):} Es una estrategia diseñada para eliminar el riesgo de mercado mediante la combinación de la opción y el activo subyacente. Por ejemplo, si el banco vende una opción, utiliza la prima recibida para comprar una cantidad determinada de acciones. De este modo, si el precio del activo sube, el banco ya no tiene que ir al mercado para comprar esa acción a un mayor precio y venderlo a uno menor, sino solo venderle esa acción que compró al principio, Al lograr que ambos movimientos se cancelen entre sí, la cartera se vuelve \textbf{nula al riesgo}, lo que obliga a que su rendimiento sea igual a la tasa libre de riesgo ($r$).
+		
+		\item \textbf{Número de acciones ($\Delta$):} número de activos que se compran para cubrir el riesgo. Depende del cambio en el precio de la opción $V$, en función el cambio en el precio del activo subyacente $S$.
+		\begin{equation}
+			\Delta = \frac{\partial V}{\partial S}
+		\end{equation}
+		
+		
+	\end{itemize}
+	\section{Transformación del Modelo: De la Trayectoria a la Probabilidad}
+	
+		El movimiento borwniano geométrico (MBG) es un comportamiento estocástico en el que se considera que las trayectorias no pueden pasar por debajo el 0 y que a su vez, permite casos en los que puedan explotar exponencialmete. El MBG por lo ya mencionado, se acerca un poco más a lo que ocurren en los mercados, que el movimiento browniano aritmético. Sin embargo, el modelo de Black-Scholes considera 3 cuestiones a mayores muy importantes:
+			
+		\begin{enumerate}		
+			\item \textbf{De la Tendencia/Drift ($\mu$) al Tipo Libre de Riesgo ($r$):} 
+			En la vida real, cada inversor tiene una opinión: los optimistas creen que la empresa tendrá éxito ($\mu > 0$) y los pesimistas que fracasará ($\mu < 0$). Si el precio de la opción dependiera de estas creencias subjetivas, el cliente y el lanzador nunca se pondrían de acuerdo. 
+					
+			Para solucionar esto, el modelo utiliza la \textbf{Neutralidad al Riesgo}. En este enfoque, el precio de la opción no se calcula intentando adivinar hacia dónde irá la acción, sino calculando cuánto cuesta \textbf{asegurar} esa posición hoy. Como el riesgo de la acción se puede \comillas{cancelar} mediante una cartera de cobertura, la única rentabilidad que queda en el sistema es la tasa libre de riesgo ($r$). Así, el precio de la opción se vuelve un dato objetivo en el que ambos pueden confiar, independientemente de lo que pase con la empresa..
+					
+			\item \textbf{De la Trayectoria al Valor Terminal ($T$):} 
+			En el modelo de Movimiento Browniano Geométrico (MBG) observamos el "viaje" del precio día a día. En cambio, Black-Scholes da un salto al futuro y se enfoca exclusivamente en el \textbf{destino final}.
+					
+			\item \textbf{Del Azar al Valor Esperado:} 
+			Mientras que el MBG utiliza el \comillas{ruido} aleatorio ($dW_t$) para crear incertidumbre en cada paso, en el modelo de Black-Scholes toma todas las posibilidades de ganar (área verde) y de perder (área naranja) y las combina en un \textbf{valor esperado} único. Ese número final es el precio de la prima: lo que deberías pagar hoy por la probabilidad de ganar mañana.
+		\end{enumerate}
+		
+		Estos son cambios conceptuales para trasladarnos a los mercados. En la siguiente sección se mostrarán las hipótesis del modelo.
+	\section{Del Movimiento Browniano Geométrico a Black-Scholes}
+		\subsection{Hipótesis del Modelo}
+			Para la deducción de la ecuación diferencial de Black-Scholes, se asumen las siguientes condiciones de un mercado ideal \cite{hull2016options}:
+			\begin{enumerate}
+				\item El precio del activo sigue un Movimiento Browniano Geométrico con $\mu$ y $\sigma$ constantes.
+				\item Se permite la venta en corto de activos sin restricciones.
+				\item No existen costes de transacción (comisiones) ni impuestos. Los activos son infinitamente divisibles.
+				\item No hay reparto de dividendos durante la vida de la opción.
+				\item Ausencia de oportunidades de arbitraje (ley de precio único).
+				\item La negociación en el mercado es continua; el precio no presenta "saltos" discretos.
+				\item La tasa libre de riesgo ($r$) es constante y conocida.
+			\end{enumerate}
+			
+	\section{Deducción de la Ecuación Diferencial de Black-Scholes}
+	
+		Consideramos que el precio de la acción $S$ sigue un Movimiento Browniano Geométrico:
+		\begin{equation}
+			dS = \mu S dt + \sigma S dW_t
+			\label{d S}
+		\end{equation}
+		
+		Supongamos que $V$ es el precio de una opción de compra (u otro derivado) que depende de $S$ y del tiempo $t$. Aplicando el \textbf{Lema de Itô}, el cambio en el precio de la opción $dV$ es:
+		\begin{equation}
+		dV = \left( \frac{\partial V}{\partial S} \mu S + \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \right) dt + \frac{\partial V}{\partial S} \sigma S dW_t = \left( \Delta\mu S + \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \right) dt + \Delta \sigma S dW_t
+		\label{d V}
+		\end{equation}
+		
+		\subsection{Construcción de la Cartera de Cobertura}
+			Para eliminar la incertidumbre del proceso de Wiener ($dW_t$), construimos una cartera $\Pi$ compuesta por:
+			\begin{itemize}
+				\item $+1$: Una opción vendida (posición corta).
+				\item $-\frac{\partial V}{\partial S}$: Una cantidad de acciones, que ya definimos (posición larga).
+			\end{itemize}
+			
+			El valor de la cartera libre de riesgo es aquella en la que el valor de la prima ($V$) debe compensar el número de los activos subyacentes ($\Delta$) con un precio ($S$):
+			\begin{equation*}
+				\Pi = V - \frac{\partial V}{\partial S} S = V - \Delta S
+			\end{equation*}
+			
+			El cambio instantáneo de la cartera en un intervalo $d$t es:
+			\begin{equation}
+				d\Pi = d V - \Delta dS
+				\label{d Pi}
+			\end{equation}
+			
+		\subsection{Eliminación del Riesgo y No Arbitraje}
+			Sustituyo en \hyperref[d Pi]{(\ref{d Pi})}, la ecuaciones del movimiento browniano \hyperref[d S]{(\ref{d S})} y del Lema de Itô \hyperref[d V]{(\ref{d V})}:
+			
+			\begin{gather*}
+				d\Pi = \left( \Delta\mu S + \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \right) dt + \Delta \sigma S dW_t - \Delta\left( \mu S dt + \sigma S dW_t \right) 
+				\\
+				d\Pi = \left( \Delta\mu S + \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 - \Delta\mu S \right) dt  + \left(\Delta\sigma S - \Delta\sigma S \right)dW_t
+			\end{gather*}
+			
+			Vemos perfectamente que al descomponer el cambio en el valor de la cartera $\Pi$ en un término temporal y en otro de azar, éste último se vuelve 0. Es decir, nuestra elección de $\Delta$ es aquella que compensa el movimiento aleatorio del mercado.
+			
+			\begin{gather}
+				d\Pi = \left( \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \right) dt
+				\label{d Pi final}
+			\end{gather}
+			
+			Dado que la cartera no tiene riesgo, su rendimiento debe ser igual al de una inversión en la tasa libre de riesgo ($r$):
+			
+			\begin{equation}
+				d\Pi = r \Pi dt
+				\label{d Pi tasa r}
+			\end{equation}
+			
+			EL no arbitraje sustenta que si tenemos 2 carteras d$\Pi$ sin riesgo, deben rentar lo mismo, de esta manera, igualando \hyperref[d Pi final]{(\ref{d Pi final})} con \hyperref[d Pi tasa r]{(\ref{d Pi tasa r})}
+			
+			\begin{equation*}
+			\left( \frac{\partial V}{\partial t} + \frac{1}{2} \frac{\partial^2 V}{\partial S^2} \sigma^2 S^2 \right) dt
+			=
+			r \Pi dt
+			\end{equation*}
+			
+			Simplificando y reordenando los términos, obtenemos la \textbf{Ecuación Diferencial de Black-Scholes}:
+			
+			\begin{equation}
+			\boxed{\frac{\partial V}{\partial t} + r S \frac{\partial V}{\partial S} + \frac{1}{2} \sigma^2 S^2 \frac{\partial^2 V}{\partial S^2} = r V
+			}
+			\end{equation}
+	
+	\section{Soluciones y simulación}
+		\subsection{Mercado ideal (\texttt{modelo\_black\_scholes.py})}
+			La ecuación diferencial de Black--Scholes--Merton admite múltiples soluciones, las cuales corresponden a todos los posibles derivados financieros que pueden definirse teniendo a $S$ como activo subyacente. El derivado particular que se obtiene al resolver la ecuación depende de las \textbf{condiciones de contorno} que se apliquen. 
+			
+			Estas condiciones especifican los valores del derivado en los límites de los posibles valores de $S$ y $t$. En el caso de una \textbf{opción de compra (call) europea}, la condición de contorno fundamental es:
+			\begin{equation}
+				V = \max(S - K, 0) \quad \text{cuando } t = T
+			\end{equation}
+			
+			Mientras que para una \textbf{opción de venta (put) europea}, la condición es:
+			\begin{equation}
+				V = \max(K - S, 0) \quad \text{cuando } t = T
+			\end{equation}
+			
+			\subsubsection{El papel del Strike ($K$) y la \textit{Moneyness}}
+			Como se observa en las condiciones de contorno, el precio de ejercicio $K$ es la variable que determina si el contrato tendrá valor al vencimiento. La relación entre el precio actual del activo ($S$) y el precio pactado ($K$) define el estado de la opción, concepto conocido como \textit{Moneyness}:
+			
+			\begin{itemize}
+				\item \textbf{In-the-Money ($S > K$):} El derecho de compra vale la pena. El poseedor ganaría dinero si la ejecutara en ese instante. En este estado, el Delta ($\Delta$) es alto, pues es muy probable que el banco deba entregar la acción.
+				\item \textbf{At-the-Money ($S \approx K$):} El precio del activo es igual al precio de ejercicio. Es el punto de máxima incertidumbre y donde el valor de la opción es más sensible a cambios en la volatilidad.
+				\item \textbf{Out-of-the-Money ($S < K$):} La opción de compra ya no vale la pena. El derecho permite comprar a un precio superior. Sin embargo, mantiene un valor de mercado debido a la probabilidad de que el precio suba antes del vencimiento.
+			\end{itemize}
+			
+			\subsubsection{Cobertura Dinámica}
+				Un punto crucial sobre la cartera utilizada en la deducción es que \textbf{no es permanentemente libre de riesgo} \cite{hull2016options}. La cartera es nula al riesgo únicamente durante un periodo de tiempo infinitesimal ($dt$).
+				
+				A medida que el precio del activo $S$ y el tiempo $t$ cambian, la sensibilidad $\partial V / \partial S$ (el Delta) también varía. Por lo tanto, para mantener la neutralidad, es necesario ajustar frecuentemente la cantidad de acciones en la cartera. Este proceso de ajuste continuo es lo que permite al lanzador de la opción eliminar su exposición al riesgo direccional del mercado.
+				
+				Con esto en cuenta las soluciones para Call/C y Put/P serían: \cite{hull2016options}:
+				\begin{equation}
+					\boxed{
+					\begin{aligned}
+						d_1 &= \frac{\ln(S_0 / K) + (r + \frac{\sigma^2}{2})T}{\sigma\sqrt{T}} \\
+						d_2 &= d_1 - \sigma\sqrt{T} \\
+						C &= S_0 N(d_1) - K e^{-rT} N(d_2) \\
+						P &= K e^{-rT} N(-d_2) - S_0 N(-d_1)
+					\end{aligned}
+					}
+				\end{equation}
+				
+				En donde N(d1) representaría a $\Delta$. y N(d2) la probabilidad de que la opción termine in-the-money
+				
+				Aunque esta es la solución para solo ver el valor de C o P, si queremos ver cuanto vale en el mercado la opción a lo largo del timepo hasta la fecha de vencimiento T. En donde ahora, \comillas{t} es el tiempo que queda hasta la fecha de vencimiento ($t_{vencimiento} = t_v = T - t_{actual}$) y $S_t$ el valor del activo subyacente en ese instante
+				
+				\begin{equation}
+					\boxed{
+						\begin{aligned}
+							d_1 &= \frac{\ln(S_t / K) + (r + \frac{\sigma^2}{2})t_v}{\sigma\sqrt{t_v}} \\
+							d_2 &= d_1 - \sigma\sqrt{t_v} \\
+							C &= S_t N(d_1) - K e^{-rt_v} N(d_2) \\
+							P &= K e^{-rt_v} N(-d_2) - S_t N(-d_1)
+						\end{aligned}
+					}
+					\label{soluciones}
+				\end{equation}
+				
+				En el código de python se definirá una función con las soluciones \hyperref[soluciones]{(\ref{soluciones})}, y se incorporará en un bucle para calcular el precio de la opción que tendría en el mercado hasta la fecha de vencimiento.
+			
+			\subsubsection{Eficiencia de la catera de Cobertura y Residuos}
+			%osea en t = T, si la accion es menor, la opcion no vale nada en el mercado, entonces eso quiere decir que el cliente no comprara la accion y por ende el banco no necesita tener ninguna accion comprada. Si sube la opcion vale lo mismo que si tu tuvieses la accion desde un pricipio y al venderla ganaras un dindero, esa V final, entronces el banco necesita tener unas acciones para compensarlo. Entonces el Vsimulado al final es en realidad el payoff neto del cliente y lo restas del payoff real.
+				En la simulación computacional, evaluamos la precisión del modelo calculando el \textbf{residuo} o error de cobertura al vencimiento ($t=0 \equiv t_v = 0$). Este se define como la diferencia entre el valor de la opción calculado por el modelo y el beneficio real (\textit{payoff}), ya que por el \textbf{No Arbitraje}, el precio de la opcion en el mercado en t=T, debe ser igual que si se hubiese tenido una acción desde un pricipio y se hubiese venido para ganar la diferencia:
+				\begin{equation}
+					\epsilon = V_{simulado}(T) - \text{Payoff Real}
+				\end{equation}
+				Si el beneficio real (Payoff real) del cliente supera lo que se esperaba ($V_{simulado}$), entonces la cartera pierde dinero.\\
+				\\
+				Bajo las hipótesis de mercado ideal (negociación continua y sin costes), este residuo tiende a cero, demostrando que la prima cobrada inicialmente y el rebalanceo del $\Delta$ son suficientes para que la cartera cubra al cliente.
+			
+			\subsubsection{Payoff neto del cliente}
+				Por último se mostrará en función del precio final de la acción $S_T$ el beneficio neto del cliente (Payoff neto):
+			
+				\textbf{Si es una opción tipo call}
+			
+				Si en t = T el estado es ITM (S$>$K): payoff neto corresponde al precio que tendría V en el mercado a fecha de vencimiento $t = T$ menos la prima inicial $V_0$, o que es lo mismo, el precio de la acción en ese momento menos el strike
+			
+				\begin{equation}
+					\text{Payoff neto} = V_{final} - V_0 = \max(0,S_T - K) - V_0
+				\end{equation}
+			
+				Si en t = T el estado es OTM (S$<$K): El cliente no ejercerá el derecho a compra, solo pierde la prima
+			
+				\begin{equation}
+					\text{Payoff neto} = \max(0,K - S_T) - V_0
+				\end{equation}
+			
+				\textbf{Si es una opción tipo put}
+			
+				Si en t = T el estado es ITM (S$>$K): el cliente no ejerce el derecho a venta
+			
+				\begin{equation}
+					\text{Payoff neto} = V_{final} - V_0 = \max(0,K - S_T) - V_0
+				\end{equation}
+			
+				Si en t = T el estado es OTM (S$<$K): El cliente ejerce el derecho a venta:
+			
+				\begin{equation}
+					\text{Payoff neto} = \max(0,K - S_T) - V_0
+				\end{equation}
+				
+				\subsubsection{Limitaciones}
+				\begin{itemize}
+					\item \textbf{Volatilidad Constante ($\sigma$)}: Black-Scholes asume que la volatilidad es un número fijo. En la realidad, la volatilidad cambia cada segundo. Las opciones muy lejos del precio actual suelen ser más caras de lo que dice el modelo porque el mercado teme eventos extremos.
+					
+					\item \textbf{Distribución Normal (Log-normal):} El modelo asume que los precios siguen una campana de Gauss. Pero los mercados financieros tienen catastróficos (cracs bursátiles), la cual ocurren mucho más a menudo de lo que la estadística de Gauss predice. Es decir pueden existir casos en los que el precio parece \comillas{teletransportarse} en la vida real, el modelo actual no lo contempla
+					
+					\item \textbf{Negociación Continua y sin costes:} En la vida real no puedes rebalancear cada segundo porque las comisiones se comerían el beneficio. Además, el mercado tiene \comillas{saltos} (el precio salta de 100 a 95 sin pasar por el medio), lo que rompe la cobertura dinámica.
+				\end{itemize}
+		
+			\subsection{Mercado realista (\texttt{modelo\_black\_scholes\_realista\_Leland.py})} 
+				En el modelo ideal, haciamos que los pasos dt fueran como el contínuo, por eso los errores de cobertura eran nulos, pues ajustavamos la compra/venta de acciones cada pasos dt, el mismo ritmo que sigue el mercado.
+				
+				La realidad es que el rebalanceo de la cobertura si es muy seguido, es decir cada pasos dt, hace que aunque no tengamos error por seguir el modelo ideal, las comisiones dispararían los costes y las perdidas serian enormes.
+				
+				Veamos las 2 costes a mayores por el hecho de realizar la cobertura
+				
+				\begin{itemize}
+					\item \textbf{comisión por volumen:} el hecho de mover el dinero genera unos costes proporcionales a la cantidad de dinero que se mueve
+					
+					\begin{equation*}
+						\text{dinero a mover} \mult S_t \mult \text{comisión por volumen} 
+					\end{equation*}
+					
+					Este será el que se solucionará en este programa
+					
+					\item \textbf{coste fijo:} por cada compra/venta de acciones hay que añadirle un coste a mayores (en este programa no se solucionará, pues lo usaremos para ver el peso que tienen los costes fijos a la hora de operar sin una estrategia centrada en las comisiones).
+				\end{itemize} 
+				
+				Esto genera que ahora no se podría operar siempre a cada hora, pues los costes se dispararían. Por ende ahora si suponemos que el precio se actualizase cada 1 hora, una opción que puede ser equilibrada, sería operar cada día, es decir, por cada dt, operamos cada 24 dt. De esta manera las comisiones no serían tan agresivas, y el error por la discretización no sería tampoco muy fuerte.
+				
+				Para arreglar el problemas de las comisiones, tendriamos que cobrar la prima a un mayor precio para compensarlas. Una manera es aumentar la volatilidad solo en el cálculo del precio de la prima. Para ello usamos la fórmula de Leland \cite{leland1985option}:
+				
+				\begin{equation}
+					\sigma_L = \sigma \sqrt{1 + \sqrt{\frac{2}{\pi}} \frac{k}{\sigma\Delta t}}
+				\end{equation}
+				
+				\begin{itemize}
+					\item k = costes por volumen (ej: 0.0005 = 0.05\%)
+					\item $\sigma$ = volatilidad real del mercado
+					\item $\Delta t$ = tiempo de rebalanceo de la cartera (ej: si es cada 40 pasos, $\Delta t = 40dt$)
+				\end{itemize}
+				
+				Esta sigue siendo una aproximación por lo que se tomará la siguiente modificación
+				
+				\begin{equation}
+					\sigma_L = \sigma \sqrt{1 + \text{factor} \mult \sqrt{\frac{2}{\pi}} \frac{k}{\sigma\Delta t}}
+				\end{equation}
+				
+				Donde \comillas{factor} es un número $> 1$ que ayudará a ajustar mejor la volatilidad a la que le lanzador cobrará la prima inicial.\\
+				\\
+				\textbf{*Nota*:} Podrá observarse como al considerar los costes fijos, se crea una especie de sonrisa al observar el gráfico del payoff neto de la certera de cobertura, esto se debe a que en los extremos, el precio del activo está o muy por encima o muy por debajo del precio del strike, por ende se poseerá antes 1 o 0 acciones y no será necesario rebalancear en los últimos pasos, ahorrando dinero comisiones.
+				
+				\subsubsection{Limitaciones}
+				Aunque ya hayamos arreglado el problema de las negociaciones continúas y sin costes, Aún faltan 2 pilares más por intentar solventar
+				
+				\begin{itemize}
+					\item \textbf{Volatilidad Constante ($\sigma$)}: Black-Scholes asume que la volatilidad es un número fijo. En la realidad, la volatilidad cambia cada segundo. Las opciones muy lejos del precio actual suelen ser más caras de lo que dice el modelo porque el mercado teme eventos extremos.
+					
+					\item \textbf{Distribución Normal (Log-normal):} El modelo asume que los precios siguen una campana de Gauss. Pero los mercados financieros tienen catastróficos (cracs bursátiles), la cual ocurren mucho más a menudo de lo que la estadística de Gauss predice. Es decir pueden existir casos en los que el precio parece \comillas{teletransportarse} en la vida real, el modelo actual no lo contempla\\
+				\end{itemize}
+				
+				Hay que matizar, que aunque hallamos añadido los costes por transacción, es el coste fijo el peor de todos, si solo se necesita comprar 0.001 acción y el coste fijo es de 1.25 euros, con pequeños cambios de ese tipo, los costes por comisiones pasan a ser muy altos, aunque menores que si se rebalanceara cada dt.
+			
+			\subsection{Mercado realista (\texttt{modelo\_black\_scholes\_realista\_corregido.py})}
+				En este caso solo se operará no cada x pasos, sino cuando el coste de estar cubierto supera el coste de la transacción, es decor, \textbf{cobertura por bandas de tolerancia}:\\
+				
+				Lo que haremos es comparar el coste de la imperfección(el riesgo de no estar cubierto), frente al coste de la trasnacción(lo que cobraría el cobre: el coste fijo), es decir, solo operamos si se cumple lo siguiente
+				
+				\begin{equation}
+					|\Delta_{ajuste}| = |\Delta_{necesario} - \Delta_{actual}| \mult S_t > \text{Umbral de rentabilidad}
+				\end{equation}
+				
+				De esta manera solo ajustamos el umbral hasta que el error de cobertura sea el menor posible, de esta manera podemos reducir considerablemente las pérdidas al solo operar cuando sea lo más eficientemente posible. Con esta estrategía tendremos pérdidas solo por no poder rebalancera cada dt, y por las costes fijos por el número total de opreaciones ralizadas (en los plots se podrá comprobar como se pasan de -300 a -5 euros de perdidas, $\approx 96\%$)
+				
+				\subsubsection{Limitaciones}
+				Aunque ya hayamos arreglado el problema de las negociaciones continúas y sin costes, Aún faltan 2 pilares más por intentar solventar
+				
+				\begin{itemize}
+					\item \textbf{Volatilidad Constante ($\sigma$)}: Black-Scholes asume que la volatilidad es un número fijo. En la realidad, la volatilidad cambia cada segundo. Las opciones muy lejos del precio actual suelen ser más caras de lo que dice el modelo porque el mercado teme eventos extremos.
+					
+					\item \textbf{Distribución Normal (Log-normal):} El modelo asume que los precios siguen una campana de Gauss. Pero los mercados financieros tienen catastróficos (cracs bursátiles), la cual ocurren mucho más a menudo de lo que la estadística de Gauss predice. Es decir pueden existir casos en los que el precio parece \comillas{teletransportarse} en la vida real, el modelo actual no lo contempla\\
+				\end{itemize}
+				
+				Vemos que ahora los errores por considerar un mercado con negociación discreta y comisiones se pueden ajustar bastante bien. Sin embargo, que ocurre cuando la prima inicial es de 4 euros, pero el error de cobertura es de 5 euros. ¿Hay que añadir esos 5 euros a la prima? Obviamente no, lo que ocurre es que el modelo de black sholes funciona muy bien para grandes corporaciones, donde venden miles de acciones y juegan con ello para que los costes fijos sean decenas o cientos de veces mas bajos. De esta manera, se que podrían añadir unos céntimos a la prima inicial.
+		
+		\newpage
+		\section{Conclusiones}
+			El modelo de Black-Scholes es un gran modelo para tener una idea del precio a la que cobrar la prima a un cliente para que sea lo mas justo posible.
+			
+			Aunque hayamos podido mas o menos arreglar las limitaciones en relación al rebalanceo continuo y las comisiones por negociaciones, aún existen deficiencias con la distribución Log-Normal, la volatilidad constante (la implementación de los modelos ocultos de Markov corrigen estas deficiencias), y en general, las consideraciones ideales supuestas para el modelo. La implementaci
+			
+			También hay que tener en cuenta, como ya se dijo, este modelo es perfecto para grandes corporaciones y no para minoristas, pues las comisiones impedirían vender las opciones a un precio justo
+			
+			De esta manera hay que entender el modelo y usarlo entendiendo sus limitaciones. Pues es la base de las finanzas modernas.
+	
+	\renewcommand{\refname}{Bibliografía}
+	\bibliographystyle{plain}  % O puedes usar otro estilo: ieeetr, apa, etc.
+	\bibliography{Bibliografia}
+\end{document}
