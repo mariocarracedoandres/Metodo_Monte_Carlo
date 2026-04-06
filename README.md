@@ -16,7 +16,7 @@ Este proyecto es el resultado de un proceso de **aprendizaje autodidacta** inten
 
 ### Mi proceso de desarrollo:
 * **Especialización Independiente:** Todo el conocimiento sobre la estructura de mercados, derivados financieros y la implementación técnica en Python para finanzas ha sido adquirido por iniciativa propia.
-* **Uso de IA como multiplicador:** Al no contar con tutoría directa en esta área, he utilizado herramientas de IA avanzada como "mentores virtuales". Estas tecnologías me han permitido:
+* **Uso de LLMs como multiplicador:** Al no contar con tutoría directa en esta área, he utilizado herramientas de IA avanzada como "mentores virtuales". Estas tecnologías me han permitido:
     * **Optimizar el código:** Refinar algoritmos para mejorar la eficiencia computacional.
     * **Implementar nuevas herramientas:** Aprender estructuras de datos avanzadas en Python y manejo de librerías financieras ( numpy, pandas, scipy, matplotlib, etc.).
     * **Depuración y Lógica:** Entender los errores de implementación y profundizar en la lógica financiera detrás de cada línea de código.
