@@ -10,7 +10,7 @@
         - cobertura_dinamica(png).png
         - payoff_neto_vendedor(residuos)(png).png
         - payoff_neto_comprador(png).png
-    - plots_black_scholes_realista_lenand
+    - plots_black_scholes_realista_leland
         - mov_browniano_geometrico(png).png
         - precio_opciones_con_el_tiempo(png).png
         - cobertura_dinamica(png).png
@@ -72,7 +72,7 @@ Datos S0, mu y sigma tomados de [Yahoo Finance](https://finance.yahoo.com/quote/
 -El programa preguntará si se desea **guardar las imágenes (png) y los datos en formato Excel (csv)**: si (y) o no (n).
 -Se han tomado en cuenta que la **separacion decimal es ","**
 
-## modelo_black_scholes_realista_Lenand.py
+## modelo_black_scholes_realista_Leland.py
 ### Requisitos
 - `numpy`
 - `matplotlib`
