@@ -24,7 +24,6 @@
         - payoff_neto_cliente(png).png
 - teoría
     - modelo_black_scholes.pdf
-    - modelo_black_scholes.pdf
 
 
 *Si se encuentra algún error en la teoría o en la implementación, no duden contactar o pull request.*
